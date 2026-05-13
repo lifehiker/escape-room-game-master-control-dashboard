@@ -1,0 +1,303 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum MembershipRole {
+  OWNER
+  STAFF
+}
+
+enum SessionStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum SessionEventType {
+  SESSION_STARTED
+  SESSION_PAUSED
+  SESSION_RESUMED
+  SESSION_ENDED
+  HINT_SENT
+  CUE_FIRED
+  PUZZLE_SOLVED
+  NOTE_ADDED
+  RESET_STARTED
+  RESET_COMPLETED
+}
+
+enum HintType {
+  NUDGE
+  DIRECT_CLUE
+  SOLVE_ASSIST
+}
+
+enum SubscriptionPlan {
+  STARTER
+  VENUE
+  DESIGNER
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum TeamInviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELED
+}
+
+model User {
+  id             String         @id @default(cuid())
+  name           String?
+  email          String?        @unique
+  emailVerified  DateTime?
+  image          String?
+  passwordHash   String?
+  activeVenueId  String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  accounts       Account[]
+  sessions       Session[]
+  memberships    Membership[]
+  startedRuns    ResetRun[]     @relation("ResetRunCompletedBy")
+  sessionEvents  SessionEvent[]
+  sessionNotes   SessionNote[]
+  startedGames   GameSession[]  @relation("GameSessionStartedBy")
+  createdVenues  Venue[]        @relation("VenueCreatedBy")
+  invitesCreated TeamInvite[]   @relation("InviteCreatedBy")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+  oauth_token_secret String?
+  oauth_token        String?
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Venue {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  createdById   String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  createdBy     User           @relation("VenueCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  memberships   Membership[]
+  rooms         Room[]
+  subscriptions Subscription[]
+  invites       TeamInvite[]
+}
+
+model Membership {
+  id        String         @id @default(cuid())
+  userId    String
+  venueId   String
+  role      MembershipRole
+  createdAt DateTime       @default(now())
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venue     Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, venueId])
+}
+
+model Room {
+  id              String               @id @default(cuid())
+  venueId         String
+  name            String
+  slug            String
+  durationMinutes Int
+  staffNotes      String               @default("")
+  description     String               @default("")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  venue           Venue                @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  templates       RoomTemplate[]
+  resetItems      ResetChecklistItem[]
+  sessions        GameSession[]
+  resetRuns       ResetRun[]
+
+  @@unique([venueId, slug])
+}
+
+model RoomTemplate {
+  id        String         @id @default(cuid())
+  roomId    String
+  name      String
+  isDefault Boolean        @default(false)
+  summary   String         @default("")
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  room      Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  hints     TemplateHint[]
+  cues      TemplateCue[]
+  sessions  GameSession[]
+}
+
+model TemplateHint {
+  id         String       @id @default(cuid())
+  templateId String
+  stageName  String
+  label      String
+  content    String
+  order      Int
+  hintType   HintType     @default(NUDGE)
+  template   RoomTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+model TemplateCue {
+  id            String       @id @default(cuid())
+  templateId    String
+  stageName     String
+  label         String
+  instructions  String
+  offsetMinutes Int
+  order         Int
+  template      RoomTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+model ResetChecklistItem {
+  id       String         @id @default(cuid())
+  roomId   String
+  label    String
+  details  String         @default("")
+  order    Int
+  room     Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  runItems ResetRunItem[]
+}
+
+model GameSession {
+  id                 String         @id @default(cuid())
+  roomId             String
+  templateId         String
+  startedById        String
+  teamName           String
+  status             SessionStatus  @default(ACTIVE)
+  startedAt          DateTime       @default(now())
+  endedAt            DateTime?
+  pausedAt           DateTime?
+  pausedTotalSeconds Int            @default(0)
+  handoffNotes       String         @default("")
+  currentStage       String         @default("Arrival")
+  durationMinutes    Int
+  room               Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  template           RoomTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  startedBy          User           @relation("GameSessionStartedBy", fields: [startedById], references: [id], onDelete: Cascade)
+  events             SessionEvent[]
+  notes              SessionNote[]
+}
+
+model SessionEvent {
+  id          String           @id @default(cuid())
+  sessionId   String
+  type        SessionEventType
+  payloadJson Json?
+  createdAt   DateTime         @default(now())
+  createdById String
+  session     GameSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdBy   User             @relation(fields: [createdById], references: [id], onDelete: Cascade)
+}
+
+model SessionNote {
+  id          String      @id @default(cuid())
+  sessionId   String
+  body        String
+  createdById String
+  createdAt   DateTime    @default(now())
+  session     GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+}
+
+model ResetRun {
+  id            String         @id @default(cuid())
+  roomId        String
+  completedById String
+  createdAt     DateTime       @default(now())
+  room          Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  completedBy   User           @relation("ResetRunCompletedBy", fields: [completedById], references: [id], onDelete: Cascade)
+  items         ResetRunItem[]
+}
+
+model ResetRunItem {
+  id              String             @id @default(cuid())
+  resetRunId      String
+  checklistItemId String
+  completed       Boolean            @default(false)
+  completedAt     DateTime?
+  resetRun        ResetRun           @relation(fields: [resetRunId], references: [id], onDelete: Cascade)
+  checklistItem   ResetChecklistItem @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+
+  @@unique([resetRunId, checklistItemId])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  venueId              String             @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  plan                 SubscriptionPlan
+  status               SubscriptionStatus
+  trialEndsAt          DateTime?
+  currentPeriodEndsAt  DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  venue                Venue              @relation(fields: [venueId], references: [id], onDelete: Cascade)
+}
+
+model TeamInvite {
+  id           String           @id @default(cuid())
+  venueId      String
+  email        String
+  role         MembershipRole
+  token        String           @unique
+  status       TeamInviteStatus @default(PENDING)
+  expiresAt    DateTime
+  createdById  String
+  createdAt    DateTime         @default(now())
+  acceptedById String?
+  acceptedAt   DateTime?
+  venue        Venue            @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  createdBy    User             @relation("InviteCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@unique([venueId, email])
+}
