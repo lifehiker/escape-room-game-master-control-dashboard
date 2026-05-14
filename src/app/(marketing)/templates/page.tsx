@@ -26,3 +26,12 @@ export default function TemplatesPage() {
     </div>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Escape Room Templates",
+  description:
+    "Browse reusable room templates for horror, detective, and other escape room control workflows with hints, cues, and reset ideas.",
+  path: "/templates",
+  keywords: ["escape room templates", "escape room control template"],
+});

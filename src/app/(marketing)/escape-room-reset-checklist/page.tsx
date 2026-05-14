@@ -8,3 +8,12 @@ export default function ResetChecklistPage() {
     </div>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Escape Room Reset Checklist",
+  description:
+    "Track room-turn resets with a timestamped escape room reset checklist instead of paper sheets and missed handoff details.",
+  path: "/escape-room-reset-checklist",
+  keywords: ["escape room reset checklist", "escape room room reset checklist software"],
+});

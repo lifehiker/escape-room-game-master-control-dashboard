@@ -13,3 +13,12 @@ export default function DetectiveTemplatePage() {
     </div>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Detective Room Hint Flow",
+  description:
+    "Reference a detective-room hint flow for clue-dense games, dead-end recovery, and clean operator handoffs.",
+  path: "/templates/detective-room-hint-flow",
+  keywords: ["detective room hint flow", "escape room hint flow"],
+});

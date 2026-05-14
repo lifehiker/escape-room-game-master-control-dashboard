@@ -1,5 +1,14 @@
+import { buildMetadata } from "@/lib/seo";
 import { DemoShot } from "@/components/marketing/demo-shot";
 import { CtaLink } from "@/components/marketing/cta-link";
+
+export const metadata = buildMetadata({
+  title: "Sandbox Demo",
+  description:
+    "Preview the Master Control interface with a public sandbox snapshot, then open the seeded demo accounts for the full escape room dashboard.",
+  path: "/demo",
+  keywords: ["escape room software demo", "escape room dashboard demo"],
+});
 
 export default function DemoPage() {
   return (
@@ -12,7 +21,9 @@ export default function DemoPage() {
         <DemoShot />
       </div>
       <div className="mt-8">
-        <CtaLink href="/login">Open demo credentials</CtaLink>
+        <CtaLink href="/login" eventName="cta_demo_credentials" eventProps={{ location: "demo_page" }}>
+          Open demo credentials
+        </CtaLink>
       </div>
     </div>
   );

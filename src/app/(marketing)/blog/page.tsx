@@ -32,3 +32,12 @@ export default function BlogIndexPage() {
     </div>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Blog",
+  description:
+    "Read operator-focused articles about escape room control software, handoffs, hint workflows, and replacing spreadsheets.",
+  path: "/blog",
+  keywords: ["escape room operations blog", "escape room control software blog"],
+});

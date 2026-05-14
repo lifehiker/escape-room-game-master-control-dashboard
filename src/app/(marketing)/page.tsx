@@ -1,7 +1,16 @@
+import { buildMetadata } from "@/lib/seo";
 import { CtaLink } from "@/components/marketing/cta-link";
 import { DemoShot } from "@/components/marketing/demo-shot";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+
+export const metadata = buildMetadata({
+  title: "Escape Room Control Software",
+  description:
+    "Browser-based escape room control software for game masters. Run hints, timers, reset logs, and staff handoffs from one dashboard.",
+  path: "/",
+  keywords: ["escape room control software", "escape room game master dashboard", "escape room live ops software"],
+});
 
 export default function HomePage() {
   return (
@@ -20,8 +29,10 @@ export default function HomePage() {
               spreadsheets, timers, cue sheets, and paper reset logs during live sessions.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <CtaLink href="/dashboard">Start 14-day trial</CtaLink>
-              <CtaLink href="/demo" variant="secondary">
+              <CtaLink href="/dashboard" eventName="cta_trial_start" eventProps={{ location: "home_hero" }}>
+                Start 14-day trial
+              </CtaLink>
+              <CtaLink href="/demo" variant="secondary" eventName="cta_demo_open" eventProps={{ location: "home_hero" }}>
                 Open sandbox demo
               </CtaLink>
             </div>

@@ -8,3 +8,12 @@ export default function GameMasterSoftwarePage() {
     </div>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Escape Room Game Master Software",
+  description:
+    "Replace spreadsheets and timer hacks with escape room game master software for cues, hints, handoffs, and reset logs.",
+  path: "/escape-room-game-master-software",
+  keywords: ["escape room game master software", "escape room operator dashboard"],
+});

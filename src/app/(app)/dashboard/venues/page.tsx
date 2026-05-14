@@ -1,6 +1,6 @@
 import { MembershipRole } from "@prisma/client";
 
-import { switchActiveVenueAction, updateVenueAction } from "@/app/(app)/dashboard/actions";
+import { createVenueAction, switchActiveVenueAction, updateVenueAction } from "@/app/(app)/dashboard/actions";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,12 @@ import { requireUser } from "@/lib/auth-helpers";
 import { db } from "@/lib/db";
 import { roleLabel } from "@/lib/dashboard";
 
-export default async function VenuesPage() {
+export default async function VenuesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
   const session = await requireUser();
   const memberships = await db.membership.findMany({
     where: {
@@ -39,6 +44,12 @@ export default async function VenuesPage() {
         title="Manage active venue context."
         description="Switch between venues you belong to and update the currently active venue’s display name."
       />
+
+      {params.error === "venue-limit" ? (
+        <Card className="border border-[var(--color-warning)]/20 bg-[var(--color-warning)]/8 text-sm text-[var(--color-ink)]">
+          Additional venues require the Designer / Multi-Operator plan.
+        </Card>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="space-y-4">
@@ -90,6 +101,32 @@ export default async function VenuesPage() {
               Only venue owners can rename the venue. You can still switch the active venue context from the list.
             </p>
           )}
+        </Card>
+
+        <Card className="space-y-4 xl:col-span-2">
+          <div>
+            <h2 className="text-xl font-semibold text-[var(--color-ink)]">Create another venue</h2>
+            <p className="mt-1 text-sm text-[var(--color-ink-muted)]">
+              Starter and Venue plans stay single-venue. Designer / Multi-Operator supports additional venue workspaces.
+            </p>
+          </div>
+          <form action={createVenueAction} className="grid gap-4 md:grid-cols-2">
+            <Field label="Venue name">
+              <Input name="venueName" placeholder="North Annex Escape" required />
+            </Field>
+            <Field label="Starter room">
+              <Input name="roomName" placeholder="Signal Room" required />
+            </Field>
+            <Field label="Session length (minutes)">
+              <Input name="durationMinutes" type="number" min={30} max={180} defaultValue={60} required />
+            </Field>
+            <Field label="Operator notes">
+              <Input name="notes" placeholder="Optional setup notes for the first room." />
+            </Field>
+            <div className="md:col-span-2">
+              <SubmitButton pendingLabel="Creating venue...">Create venue workspace</SubmitButton>
+            </div>
+          </form>
         </Card>
       </div>
     </div>

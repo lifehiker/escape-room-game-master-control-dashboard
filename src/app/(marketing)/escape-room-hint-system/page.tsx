@@ -8,3 +8,12 @@ export default function HintSystemPage() {
     </div>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Escape Room Hint System",
+  description:
+    "Run prewritten hints, escalation paths, and operator logs from a browser-based escape room hint system built for live sessions.",
+  path: "/escape-room-hint-system",
+  keywords: ["escape room hint system", "escape room clue software"],
+});

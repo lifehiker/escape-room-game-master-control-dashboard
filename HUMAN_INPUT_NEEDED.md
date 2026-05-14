@@ -1,85 +1,102 @@
 # Human Input Needed
 
-The app runs fully without any of these. They unlock additional features when configured.
+Updated: 2026-05-14
 
----
+The app is fully usable locally without any of the items below. These only unlock external integrations or production-grade infrastructure.
 
-## 1. Google OAuth (optional)
+## 1. Google OAuth
 
-**What it enables:** "Continue with Google" login button on the sign-in page.
+What it enables: `Continue with Google` on `/login`.
 
-**Steps:**
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials.
-2. Create an **OAuth 2.0 Client ID** (Web application).
-3. Add `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI (use your production domain in production).
-4. Copy the Client ID and Secret into `.env`:
+Provide:
 
 ```env
 GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="your-client-secret"
+NEXTAUTH_URL="https://your-domain.com"
 ```
 
----
+Set the Google callback URL to:
 
-## 2. Stripe (optional)
+```text
+https://your-domain.com/api/auth/callback/google
+```
 
-**What it enables:** Real payment collection and subscription management. Without it, the billing page shows a local plan switcher that saves directly to the database.
+Local fallback already implemented: credentials login with seeded demo users.
 
-**Steps:**
-1. Create a [Stripe](https://stripe.com) account.
-2. In the Stripe Dashboard, create three products (Starter $29/mo, Venue $59/mo, Designer $99/mo) and note the price IDs.
-3. Copy your API keys into `.env`:
+## 2. Stripe
+
+What it enables: real paid subscription checkout and live subscription syncing.
+
+Provide:
 
 ```env
-STRIPE_SECRET_KEY="sk_test_..."
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."   # from `stripe listen --forward-to localhost:3000/api/webhooks/stripe`
+STRIPE_SECRET_KEY="sk_live_or_test_..."
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_or_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
 ```
 
-4. Implement `/api/webhooks/stripe` to handle `checkout.session.completed` and `customer.subscription.*` events and update the `Subscription` table accordingly.
+Webhook route in this app:
 
----
+```text
+/api/stripe/webhook
+```
 
-## 3. Resend (optional)
+Recommended Stripe metadata:
 
-**What it enables:** Actual email delivery for team invitations. Without it, the invite link is shown directly in the UI so staff can share it manually.
+- `plan`: `STARTER`, `VENUE`, or `DESIGNER`
+- `venueId`: the current venue ID on checkout/session records
 
-**Steps:**
-1. Create a [Resend](https://resend.com) account and verify a sending domain.
-2. Copy your API key into `.env`:
+Local fallback already implemented: the billing page updates plan state directly in the database without Stripe.
+
+## 3. Resend
+
+What it enables: actual delivery of team invite emails.
+
+Provide:
 
 ```env
 RESEND_API_KEY="re_..."
 ```
 
----
+You will also want a valid sender/domain for production mail delivery.
+
+Local fallback already implemented: pending invites display an accept link in the team settings UI.
 
 ## 4. Production Database
 
-**What it enables:** Durable, multi-instance data storage. The app defaults to SQLite (`prisma/dev.db`) which is fine for a single-server deployment but won't work across replicas.
+What it enables: durable multi-instance persistence instead of local SQLite.
 
-**Steps:**
-1. Provision a PostgreSQL database (Railway, Supabase, Neon, RDS, etc.).
-2. Update `.env`:
+Provide:
 
 ```env
-DATABASE_URL="postgresql://user:password@host:5432/escape_room"
+DATABASE_URL="postgresql://user:password@host:5432/escape_room_db"
 ```
 
-3. Run `npx prisma migrate deploy` to apply schema migrations.
-4. Run `npm run db:seed` to seed demo users (optional).
+Then run:
 
----
+```bash
+npx prisma migrate deploy
+npm run db:seed
+```
 
-## 5. NEXTAUTH_SECRET (required in production)
+Local fallback already implemented: SQLite database at `prisma/dev.db`.
 
-The app ships with a fallback secret for local dev. **Change it before deploying:**
+## 5. Production Auth Secret
+
+Required before real deployment:
 
 ```bash
 openssl rand -base64 32
 ```
 
+Set:
+
 ```env
-NEXTAUTH_SECRET="<output of above>"
+NEXTAUTH_SECRET="generated-secret"
 NEXTAUTH_URL="https://your-domain.com"
 ```
+
+## Environment Limitation During Verification
+
+`docker build .` could not be executed in this session because Docker socket access is denied for the current user, even though the Docker CLI is installed.

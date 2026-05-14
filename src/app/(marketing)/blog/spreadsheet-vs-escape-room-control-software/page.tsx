@@ -8,3 +8,12 @@ export default function SpreadsheetVsSoftwarePage() {
     </article>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Spreadsheets vs Escape Room Control Software",
+  description:
+    "Compare spreadsheets against dedicated escape room control software for live timers, hints, cues, and reset accountability.",
+  path: "/blog/spreadsheet-vs-escape-room-control-software",
+  keywords: ["spreadsheets vs escape room control software", "escape room live management"],
+});

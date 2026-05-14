@@ -13,3 +13,12 @@ export default function HorrorTemplatePage() {
     </div>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Horror Room Control Template",
+  description:
+    "Use this horror-room control template to structure scare cues, atmosphere changes, and escalation timing for a live game master board.",
+  path: "/templates/horror-room-control-template",
+  keywords: ["horror room control template", "escape room horror template"],
+});

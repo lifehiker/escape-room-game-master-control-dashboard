@@ -8,3 +8,12 @@ export default function HandoffsBlogPage() {
     </article>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "How To Run Game Master Handoffs Without Missed Clues",
+  description:
+    "Set up better game master handoffs with event logs, operator notes, and reset visibility for escape room shift changes.",
+  path: "/blog/how-to-run-game-master-handoffs-without-missed-clues",
+  keywords: ["game master handoff software for escape rooms", "escape room staff handoff"],
+});

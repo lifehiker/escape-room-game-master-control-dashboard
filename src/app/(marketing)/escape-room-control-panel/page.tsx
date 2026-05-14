@@ -8,3 +8,12 @@ export default function ControlPanelPage() {
     </div>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Escape Room Control Panel",
+  description:
+    "Operate multi-step rooms from a browser-based escape room control panel with live timers, cues, notes, and reset workflows.",
+  path: "/escape-room-control-panel",
+  keywords: ["escape room control panel", "escape room session management tool"],
+});

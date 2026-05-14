@@ -4,6 +4,7 @@ import {
   deleteTemplateAction,
   deleteTemplateCueAction,
   deleteTemplateHintAction,
+  duplicateTemplateAction,
   updateTemplateAction,
 } from "@/app/(app)/dashboard/actions";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -19,32 +20,46 @@ import { db } from "@/lib/db";
 
 export default async function TemplateDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ templateId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { venueId } = await requireMembership();
   const { templateId } = await params;
-  const template = await db.roomTemplate.findFirst({
-    where: {
-      id: templateId,
-      room: {
-        venueId,
+  const query = await searchParams;
+  const [template, rooms, subscription] = await Promise.all([
+    db.roomTemplate.findFirst({
+      where: {
+        id: templateId,
+        room: {
+          venueId,
+        },
       },
-    },
-    include: {
-      room: true,
-      hints: {
-        orderBy: { order: "asc" },
+      include: {
+        room: true,
+        hints: {
+          orderBy: { order: "asc" },
+        },
+        cues: {
+          orderBy: { order: "asc" },
+        },
       },
-      cues: {
-        orderBy: { order: "asc" },
-      },
-    },
-  });
+    }),
+    db.room.findMany({
+      where: { venueId },
+      orderBy: { name: "asc" },
+    }),
+    db.subscription.findUnique({
+      where: { venueId },
+    }),
+  ]);
 
   if (!template) {
     return <div>Template not found.</div>;
   }
+
+  const hasAdvancedAccess = subscription?.plan === "DESIGNER";
 
   return (
     <div className="space-y-6">
@@ -53,6 +68,17 @@ export default async function TemplateDetailPage({
         title={template.name}
         description={`Reusable runbook for ${template.room.name}. Maintain hints, cues, and default behavior here.`}
       />
+
+      {query.status === "duplicated" ? (
+        <Card className="border border-[var(--color-success)]/20 bg-[var(--color-success)]/8 text-sm text-[var(--color-ink)]">
+          Template duplicated successfully.
+        </Card>
+      ) : null}
+      {query.error === "advanced-plan-required" ? (
+        <Card className="border border-[var(--color-warning)]/20 bg-[var(--color-warning)]/8 text-sm text-[var(--color-ink)]">
+          Duplicate and export are unlocked on the Designer / Multi-Operator plan.
+        </Card>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <Card className="space-y-4">
@@ -84,6 +110,41 @@ export default async function TemplateDetailPage({
               Delete template
             </SubmitButton>
           </form>
+          <div className="space-y-3 border-t border-[var(--color-line)] pt-4">
+            <h3 className="text-lg font-semibold text-[var(--color-ink)]">Designer tools</h3>
+            <p className="text-sm text-[var(--color-ink-muted)]">
+              Duplicate this template to another room or export the runbook as JSON for external backup.
+            </p>
+            {hasAdvancedAccess ? (
+              <>
+                <form action={duplicateTemplateAction} className="space-y-3">
+                  <input type="hidden" name="templateId" value={template.id} />
+                  <Field label="Duplicate to room">
+                    <Select name="roomId" defaultValue={template.roomId}>
+                      {rooms.map((room) => (
+                        <option key={room.id} value={room.id}>
+                          {room.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <SubmitButton variant="secondary" pendingLabel="Duplicating template...">
+                    Duplicate template
+                  </SubmitButton>
+                </form>
+                <a
+                  href={`/api/templates/${template.id}/export`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[var(--color-line)] bg-white/70 px-4 py-2 text-sm font-semibold text-[var(--color-ink)]"
+                >
+                  Export JSON
+                </a>
+              </>
+            ) : (
+              <p className="text-sm text-[var(--color-ink-muted)]">
+                Upgrade to Designer / Multi-Operator to duplicate templates between rooms and export JSON backups.
+              </p>
+            )}
+          </div>
         </Card>
 
         <div className="space-y-6">

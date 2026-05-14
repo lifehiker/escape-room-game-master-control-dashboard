@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireMembership, requireUser } from "@/lib/auth-helpers";
-import { buildHandoffSummary, canCreateRoom, canInviteUser } from "@/lib/dashboard";
+import { buildHandoffSummary, canCreateRoom, canCreateVenue, canInviteUser, venueSupportsAdvancedTemplates } from "@/lib/dashboard";
 import { db } from "@/lib/db";
 import { hasResend, hasStripe } from "@/lib/env";
 import { getRoomLimit } from "@/lib/plans";
@@ -78,6 +78,7 @@ export async function completeOnboardingAction(formData: FormData) {
   const venueName = String(formData.get("venueName") ?? "").trim();
   const roomName = String(formData.get("roomName") ?? "").trim();
   const durationMinutes = Number(formData.get("durationMinutes") ?? 60);
+  const notes = String(formData.get("notes") ?? "").trim();
 
   if (!venueName || !roomName) {
     redirect("/dashboard/onboarding?error=missing-fields");
@@ -113,7 +114,7 @@ export async function completeOnboardingAction(formData: FormData) {
       slug: slugify(roomName),
       durationMinutes,
       description: "Your first room control board.",
-      staffNotes: "Use this note field for handoff details, puzzle quirks, and reset reminders.",
+      staffNotes: notes || "Use this note field for handoff details, puzzle quirks, and reset reminders.",
     },
   });
 
@@ -129,6 +130,69 @@ export async function completeOnboardingAction(formData: FormData) {
     },
   });
 
+  redirect("/dashboard");
+}
+
+export async function createVenueAction(formData: FormData) {
+  const session = await requireUser();
+  const venueName = String(formData.get("venueName") ?? "").trim();
+  const roomName = String(formData.get("roomName") ?? "").trim();
+  const durationMinutes = Number(formData.get("durationMinutes") ?? 60);
+  const notes = String(formData.get("notes") ?? "").trim();
+
+  if (!venueName || !roomName) {
+    redirect("/dashboard/venues?error=missing-fields");
+  }
+
+  if (!(await canCreateVenue(session.user.id))) {
+    redirect("/dashboard/venues?error=venue-limit");
+  }
+
+  const venue = await db.venue.create({
+    data: {
+      name: venueName,
+      slug: `${slugify(venueName)}-${randomBytes(2).toString("hex")}`,
+      createdById: session.user.id,
+    },
+  });
+
+  await db.membership.create({
+    data: {
+      venueId: venue.id,
+      userId: session.user.id,
+      role: MembershipRole.OWNER,
+    },
+  });
+
+  const room = await db.room.create({
+    data: {
+      venueId: venue.id,
+      name: roomName,
+      slug: `${slugify(roomName)}-${randomBytes(2).toString("hex")}`,
+      durationMinutes,
+      description: "Starter room for the new venue workspace.",
+      staffNotes: notes || "Add shift handoff notes, cue reminders, and reset risks here.",
+    },
+  });
+
+  await ensureTemplateAndResetSeed(room.id);
+
+  await db.subscription.create({
+    data: {
+      venueId: venue.id,
+      plan: SubscriptionPlan.STARTER,
+      status: SubscriptionStatus.TRIALING,
+      trialEndsAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
+      currentPeriodEndsAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
+    },
+  });
+
+  await db.user.update({
+    where: { id: session.user.id },
+    data: { activeVenueId: venue.id },
+  });
+
+  revalidatePath("/dashboard/venues");
   redirect("/dashboard");
 }
 
@@ -266,12 +330,25 @@ export async function createTemplateAction(formData: FormData) {
     redirect("/dashboard/templates?error=room-not-found");
   }
 
+  const isDefault = Boolean(formData.get("isDefault"));
+
+  if (isDefault) {
+    await db.roomTemplate.updateMany({
+      where: {
+        roomId,
+      },
+      data: {
+        isDefault: false,
+      },
+    });
+  }
+
   const template = await db.roomTemplate.create({
     data: {
       roomId,
       name: String(formData.get("name") ?? "New Template"),
       summary: String(formData.get("summary") ?? ""),
-      isDefault: Boolean(formData.get("isDefault")),
+      isDefault,
     },
   });
 
@@ -327,6 +404,27 @@ export async function updateTemplateAction(formData: FormData) {
 export async function deleteTemplateAction(formData: FormData) {
   const { venueId } = await requireMembership(MembershipRole.OWNER);
   const templateId = String(formData.get("templateId") ?? "");
+  const template = await db.roomTemplate.findFirst({
+    where: {
+      id: templateId,
+      room: {
+        venueId,
+      },
+    },
+    include: {
+      room: {
+        include: {
+          templates: {
+            orderBy: { updatedAt: "desc" },
+          },
+        },
+      },
+    },
+  });
+
+  if (!template) {
+    redirect("/dashboard/templates?error=template-not-found");
+  }
 
   await db.roomTemplate.deleteMany({
     where: {
@@ -337,8 +435,94 @@ export async function deleteTemplateAction(formData: FormData) {
     },
   });
 
+  if (template.isDefault) {
+    const fallbackTemplate = template.room.templates.find((entry) => entry.id !== template.id);
+
+    if (fallbackTemplate) {
+      await db.roomTemplate.update({
+        where: { id: fallbackTemplate.id },
+        data: { isDefault: true },
+      });
+    }
+  }
+
   revalidatePath("/dashboard/templates");
+  revalidatePath(`/dashboard/rooms/${template.roomId}`);
   redirect("/dashboard/templates");
+}
+
+export async function duplicateTemplateAction(formData: FormData) {
+  const { venueId } = await requireMembership();
+  const templateId = String(formData.get("templateId") ?? "");
+  const roomId = String(formData.get("roomId") ?? "");
+
+  if (!(await venueSupportsAdvancedTemplates(venueId))) {
+    redirect(`/dashboard/templates/${templateId}?error=advanced-plan-required`);
+  }
+
+  const source = await db.roomTemplate.findFirst({
+    where: {
+      id: templateId,
+      room: {
+        venueId,
+      },
+    },
+    include: {
+      hints: {
+        orderBy: { order: "asc" },
+      },
+      cues: {
+        orderBy: { order: "asc" },
+      },
+      room: true,
+    },
+  });
+
+  if (!source) {
+    redirect("/dashboard/templates?error=template-not-found");
+  }
+
+  const targetRoom = await db.room.findFirst({
+    where: {
+      id: roomId || source.roomId,
+      venueId,
+    },
+  });
+
+  if (!targetRoom) {
+    redirect(`/dashboard/templates/${templateId}?error=room-not-found`);
+  }
+
+  const duplicate = await db.roomTemplate.create({
+    data: {
+      roomId: targetRoom.id,
+      name: `${source.name} Copy`,
+      summary: source.summary,
+      isDefault: false,
+      hints: {
+        create: source.hints.map((hint) => ({
+          stageName: hint.stageName,
+          label: hint.label,
+          content: hint.content,
+          order: hint.order,
+          hintType: hint.hintType,
+        })),
+      },
+      cues: {
+        create: source.cues.map((cue) => ({
+          stageName: cue.stageName,
+          label: cue.label,
+          instructions: cue.instructions,
+          offsetMinutes: cue.offsetMinutes,
+          order: cue.order,
+        })),
+      },
+    },
+  });
+
+  revalidatePath("/dashboard/templates");
+  revalidatePath(`/dashboard/rooms/${targetRoom.id}`);
+  redirect(`/dashboard/templates/${duplicate.id}?status=duplicated`);
 }
 
 export async function addTemplateHintAction(formData: FormData) {

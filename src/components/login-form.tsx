@@ -63,8 +63,12 @@ export function LoginForm({ hasGoogle }: { hasGoogle: boolean }) {
 
       <div className="rounded-2xl border border-[var(--color-line)] bg-white/70 p-4 text-sm text-[var(--color-ink-muted)]">
         <p className="font-semibold text-[var(--color-ink)]">Demo access</p>
-        <p className="mt-2">Owner: `owner@midnight-heist.test` / `demo-owner-123`</p>
-        <p className="mt-1">Staff: `staff@midnight-heist.test` / `demo-staff-123`</p>
+        <p className="mt-2">
+          Owner: <code>owner@midnight-heist.test</code> / <code>demo-owner-123</code>
+        </p>
+        <p className="mt-1">
+          Staff: <code>staff@midnight-heist.test</code> / <code>demo-staff-123</code>
+        </p>
       </div>
 
       <CtaLink href="/" variant="secondary" className="w-full">

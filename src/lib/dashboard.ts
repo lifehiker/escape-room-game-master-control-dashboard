@@ -1,7 +1,7 @@
 import { MembershipRole, SessionEventType, SessionStatus, TeamInviteStatus } from "@prisma/client";
 
 import { db } from "@/lib/db";
-import { getRoomLimit, getUserLimit, isSubscriptionActive } from "@/lib/plans";
+import { getRoomLimit, getUserLimit, getVenueLimit, hasAdvancedTemplateAccess, isSubscriptionActive } from "@/lib/plans";
 
 export async function getActiveMembershipForUser(userId: string) {
   const user = await db.user.findUnique({
@@ -72,6 +72,45 @@ export async function canInviteUser(venueId: string) {
 
   const activePlan = subscription && isSubscriptionActive(subscription.status) ? subscription.plan : "STARTER";
   return venue.memberships.length + venue.invites.length < getUserLimit(activePlan);
+}
+
+export async function getActivePlanForVenue(venueId: string) {
+  const subscription = await getVenueSubscription(venueId);
+  return subscription && isSubscriptionActive(subscription.status) ? subscription.plan : "STARTER";
+}
+
+export async function canCreateVenue(userId: string) {
+  const ownedMemberships = await db.membership.findMany({
+    where: {
+      userId,
+      role: MembershipRole.OWNER,
+    },
+    include: {
+      venue: {
+        include: {
+          subscriptions: true,
+        },
+      },
+    },
+  });
+
+  if (!ownedMemberships.length) {
+    return true;
+  }
+
+  const activePlans = ownedMemberships.map((membership) => {
+    const subscription = membership.venue.subscriptions[0];
+    return subscription && isSubscriptionActive(subscription.status) ? subscription.plan : "STARTER";
+  });
+
+  const highestVenueLimit = Math.max(...activePlans.map((plan) => getVenueLimit(plan)));
+
+  return ownedMemberships.length < highestVenueLimit;
+}
+
+export async function venueSupportsAdvancedTemplates(venueId: string) {
+  const plan = await getActivePlanForVenue(venueId);
+  return hasAdvancedTemplateAccess(plan);
 }
 
 export function buildHandoffSummary(args: {

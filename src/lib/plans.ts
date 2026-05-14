@@ -32,10 +32,18 @@ export function getUserLimit(plan: SubscriptionPlan) {
   return PLAN_DETAILS[plan].userLimit;
 }
 
+export function getVenueLimit(plan: SubscriptionPlan) {
+  return plan === "DESIGNER" ? Number.POSITIVE_INFINITY : 1;
+}
+
 export function getPlanDisplay(plan: SubscriptionPlan) {
   return PLAN_DETAILS[plan];
 }
 
 export function isSubscriptionActive(status: SubscriptionStatus) {
   return status === "ACTIVE" || status === "TRIALING";
+}
+
+export function hasAdvancedTemplateAccess(plan: SubscriptionPlan) {
+  return plan === "DESIGNER";
 }

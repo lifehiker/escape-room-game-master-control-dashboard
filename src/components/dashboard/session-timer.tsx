@@ -21,11 +21,9 @@ export function SessionTimer({
   durationMinutes,
   endedAt,
 }: SessionTimerProps) {
-  const [now, setNow] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    setNow(Date.now());
-
     if (status !== "ACTIVE") {
       return;
     }

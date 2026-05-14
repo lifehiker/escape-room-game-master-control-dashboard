@@ -32,3 +32,12 @@ export default function FeaturesPage() {
     </div>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Features",
+  description:
+    "See how Master Control handles room templates, session timing, hint delivery, event logging, reset checklists, and team handoffs.",
+  path: "/features",
+  keywords: ["escape room hint system", "escape room session timer", "escape room reset checklist software"],
+});

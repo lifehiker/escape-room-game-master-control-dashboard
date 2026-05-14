@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 
 import { CtaLink } from "@/components/marketing/cta-link";
+import { trackEvent } from "@/lib/analytics";
 
 export function MarketingNav() {
   return (
@@ -25,10 +28,16 @@ export function MarketingNav() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link href="/login" className="text-sm font-medium text-[var(--color-ink-muted)]">
+          <Link
+            href="/login"
+            className="text-sm font-medium text-[var(--color-ink-muted)]"
+            onClick={() => trackEvent("cta_sign_in_click", { location: "nav" })}
+          >
             Sign in
           </Link>
-          <CtaLink href="/dashboard">Start trial</CtaLink>
+          <CtaLink href="/dashboard" eventName="cta_trial_start" eventProps={{ location: "nav" }}>
+            Start trial
+          </CtaLink>
         </div>
       </div>
     </header>

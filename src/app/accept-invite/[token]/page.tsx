@@ -28,6 +28,8 @@ export default async function AcceptInvitePage({
     );
   }
 
+  const isExpired = invite.expiresAt < new Date();
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <Card className="max-w-2xl space-y-4">
@@ -36,7 +38,11 @@ export default async function AcceptInvitePage({
         <p className="text-sm leading-7 text-[var(--color-ink-muted)]">
           This invite grants {invite.role.toLowerCase()} access to the venue’s templates, session logs, and reset workflows.
         </p>
-        {session?.user?.id ? (
+        {isExpired ? (
+          <p className="rounded-2xl border border-[var(--color-warning)]/20 bg-[var(--color-warning)]/8 p-4 text-sm text-[var(--color-ink)]">
+            This invite has expired. Ask a venue owner to generate a fresh invite.
+          </p>
+        ) : session?.user?.id ? (
           <form
             action={async () => {
               "use server";

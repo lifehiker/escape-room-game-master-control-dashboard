@@ -34,3 +34,12 @@ export default function PricingPage() {
     </div>
   );
 }
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata = buildMetadata({
+  title: "Pricing",
+  description:
+    "Compare Starter, Venue, and Designer pricing for browser-based escape room control software with a 14-day trial.",
+  path: "/pricing",
+  keywords: ["escape room software pricing", "escape room control software pricing"],
+});

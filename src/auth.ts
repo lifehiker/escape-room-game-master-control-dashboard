@@ -65,24 +65,58 @@ if (hasGoogleAuth()) {
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db),
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   pages: {
     signIn: "/login",
   },
   providers,
   callbacks: {
-    async session({ session, user }) {
+    async jwt({ token, user }) {
+      const userId = user?.id ?? token.sub;
+
+      if (!userId) {
+        return token;
+      }
+
+      const currentUser = await db.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          activeVenueId: true,
+        },
+      });
+
+      if (currentUser) {
+        token.sub = currentUser.id;
+        token.activeVenueId = currentUser.activeVenueId;
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      if (!token.sub) {
+        return session;
+      }
+
+      const currentUser = await db.user.findUnique({
+        where: { id: token.sub },
+        select: {
+          id: true,
+          activeVenueId: true,
+        },
+      });
+
       const membership = await db.membership.findFirst({
         where: {
-          userId: user.id,
-          venueId: user.activeVenueId ?? undefined,
+          userId: token.sub,
+          venueId: currentUser?.activeVenueId ?? undefined,
         },
       });
 
       if (session.user) {
-        session.user.id = user.id;
-        session.user.activeVenueId = user.activeVenueId;
+        session.user.id = token.sub;
+        session.user.activeVenueId = currentUser?.activeVenueId ?? null;
         session.user.role = membership?.role ?? null;
       }
 
