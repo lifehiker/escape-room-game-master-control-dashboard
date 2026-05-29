@@ -39,9 +39,6 @@ export default async function HistoryPage({
     },
     include: {
       room: true,
-      events: {
-        orderBy: { createdAt: "asc" },
-      },
     },
     orderBy: { startedAt: "desc" },
   });
