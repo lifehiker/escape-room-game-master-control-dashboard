@@ -24,12 +24,7 @@ function getRuntimeDatabaseUrl() {
 export const db =
   global.prisma ??
   new PrismaClient({
-    adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./dev.db" }),
-    datasources: {
-      db: {
-        url: getRuntimeDatabaseUrl(),
-      },
-    },
+    adapter: new PrismaBetterSqlite3({ url: getRuntimeDatabaseUrl() }),
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 
