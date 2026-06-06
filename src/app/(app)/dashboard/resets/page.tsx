@@ -22,8 +22,8 @@ export default async function ResetsPage() {
         room: { venueId },
       },
       include: {
-        room: true,
-        completedBy: true,
+        room: { select: { name: true } },
+        completedBy: { select: { name: true, email: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 12,
