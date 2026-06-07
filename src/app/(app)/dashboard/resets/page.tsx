@@ -12,8 +12,10 @@ export default async function ResetsPage() {
   const [rooms, resetRuns] = await Promise.all([
     db.room.findMany({
       where: { venueId },
-      include: {
-        resetItems: true,
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { resetItems: true } },
       },
       orderBy: { name: "asc" },
     }),
@@ -47,7 +49,7 @@ export default async function ResetsPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-semibold text-[var(--color-ink)]">{room.name}</p>
-                    <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{room.resetItems.length} checklist items</p>
+                    <p className="mt-1 text-sm text-[var(--color-ink-muted)]">{room._count.resetItems} checklist items</p>
                   </div>
                   <Badge className="border-transparent bg-black/6 text-[var(--color-ink-muted)]">Open</Badge>
                 </div>
