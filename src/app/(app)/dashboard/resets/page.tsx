@@ -23,7 +23,9 @@ export default async function ResetsPage() {
       where: {
         room: { venueId },
       },
-      include: {
+      select: {
+        id: true,
+        createdAt: true,
         room: { select: { name: true } },
         completedBy: { select: { name: true, email: true } },
       },
