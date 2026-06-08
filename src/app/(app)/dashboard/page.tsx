@@ -43,9 +43,11 @@ export default async function DashboardHomePage() {
           venueId,
         },
       },
-      include: {
-        room: true,
-        completedBy: true,
+      select: {
+        id: true,
+        createdAt: true,
+        room: { select: { name: true } },
+        completedBy: { select: { name: true, email: true } },
       },
       orderBy: { createdAt: "desc" },
       take: 4,
