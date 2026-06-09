@@ -37,8 +37,13 @@ export default async function HistoryPage({
           }
         : {}),
     },
-    include: {
-      room: true,
+    select: {
+      id: true,
+      teamName: true,
+      status: true,
+      startedAt: true,
+      handoffNotes: true,
+      room: { select: { name: true } },
     },
     orderBy: { startedAt: "desc" },
   });
