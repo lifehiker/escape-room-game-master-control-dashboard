@@ -62,6 +62,7 @@ export default async function DashboardHomePage() {
     }),
     db.subscription.findUnique({
       where: { venueId },
+      select: { plan: true },
     }),
   ]);
 
