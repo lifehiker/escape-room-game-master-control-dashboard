@@ -20,8 +20,11 @@ export default async function DashboardHomePage() {
   const [rooms, sessions, resets, subscription] = await Promise.all([
     db.room.findMany({
       where: { venueId },
-      include: {
-        templates: true,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        staffNotes: true,
       },
       orderBy: { createdAt: "asc" },
     }),
@@ -31,8 +34,13 @@ export default async function DashboardHomePage() {
           venueId,
         },
       },
-      include: {
-        room: true,
+      select: {
+        id: true,
+        teamName: true,
+        status: true,
+        startedAt: true,
+        roomId: true,
+        room: { select: { name: true } },
       },
       orderBy: { startedAt: "desc" },
       take: 5,
