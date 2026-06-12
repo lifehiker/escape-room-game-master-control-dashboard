@@ -20,6 +20,7 @@ export default async function HistoryPage({
   const endDate = typeof params.endDate === "string" ? params.endDate : "";
   const rooms = await db.room.findMany({
     where: { venueId },
+    select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
   const startDateValue = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
