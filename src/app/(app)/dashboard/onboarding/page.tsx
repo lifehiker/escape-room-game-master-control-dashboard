@@ -8,13 +8,11 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { requireUser } from "@/lib/auth-helpers";
-import { getActiveMembershipForUser } from "@/lib/dashboard";
 
 export default async function OnboardingPage() {
   const session = await requireUser();
-  const membership = await getActiveMembershipForUser(session.user.id);
 
-  if (membership) {
+  if (session.user.activeVenueId) {
     redirect("/dashboard");
   }
 
