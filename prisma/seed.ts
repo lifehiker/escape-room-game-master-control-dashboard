@@ -9,13 +9,14 @@ import {
   SubscriptionPlan,
   SubscriptionStatus,
 } from "@prisma/client";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
+// Prisma 7 removed the `datasources` option; sqlite now goes through a driver
+// adapter, matching how src/lib/db.ts builds its client.
 const db = new PrismaClient({
-  datasources: {
-    db: {
-      url: `file:${path.join(process.cwd(), "prisma/dev.db")}`,
-    },
-  },
+  adapter: new PrismaBetterSqlite3({
+    url: `file:${path.join(process.cwd(), "prisma/dev.db")}`,
+  }),
 });
 
 async function main() {
