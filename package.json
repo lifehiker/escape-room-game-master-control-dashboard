@@ -34,7 +34,9 @@
     "@hono/node-server": "2.0.5",
     "postcss": "^8.5.10",
     "uuid": "^11.1.1",
-    "sharp": "0.35.0"
+    "sharp": "0.35.0",
+    "mysql2": "^3.23.1",
+    "deepmerge-ts": "^8.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
